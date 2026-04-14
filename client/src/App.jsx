@@ -6,7 +6,7 @@ import {
   Hash, ChevronDown, ChevronUp, Shield
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:5000/api/compare';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api/compare';
 
 const InputField = ({ label, type = 'text', value, onChange, placeholder }) => (
   <div className="flex flex-col gap-1">
