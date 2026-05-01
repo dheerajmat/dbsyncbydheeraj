@@ -1,3 +1,5 @@
+import * as diffPkg from 'diff';
+
 export const compareSchemas = (schemaA, schemaB) => {
   const diff = {
     missingTablesInB: [],
@@ -86,7 +88,8 @@ export const compareSchemas = (schemaA, schemaB) => {
     if (!fB) {
       diff.functionDifferences.push({ type: 'missing_in_B', name: funcKey(fA), definitionA: fA.definition });
     } else if (normalizeBody(fA.definition) !== normalizeBody(fB.definition)) {
-      diff.functionDifferences.push({ type: 'body_mismatch', name: funcKey(fA), definitionA: fA.definition, definitionB: fB.definition });
+      const diffLines = diffPkg.diffLines(fB.definition || '', fA.definition || '');
+      diff.functionDifferences.push({ type: 'body_mismatch', name: funcKey(fA), diff: diffLines, definitionA: fA.definition, definitionB: fB.definition });
     }
   });
 
@@ -112,8 +115,12 @@ export const compareSchemas = (schemaA, schemaB) => {
         issues.push({ field: 'event_manipulation', A: tA.event_manipulation, B: tB.event_manipulation });
       if (tA.action_timing !== tB.action_timing)
         issues.push({ field: 'action_timing', A: tA.action_timing, B: tB.action_timing });
-      if (normalizeBody(tA.function_definition) !== normalizeBody(tB.function_definition))
-        issues.push({ field: 'function_definition', A: tA.function_definition, B: tB.function_definition });
+      if (tA.action_statement !== tB.action_statement)
+        issues.push({ field: 'action_statement', A: tA.action_statement, B: tB.action_statement });
+      if (tA.action_orientation !== tB.action_orientation)
+        issues.push({ field: 'action_orientation', A: tA.action_orientation, B: tB.action_orientation });
+      if (tA.action_condition !== tB.action_condition)
+        issues.push({ field: 'action_condition', A: tA.action_condition, B: tB.action_condition });
       if (issues.length > 0)
         diff.triggerDifferences.push({ type: 'trigger_mismatch', name: trigKey(tA), issues, detailsA: tA, detailsB: tB });
     }

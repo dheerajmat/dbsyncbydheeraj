@@ -29,7 +29,7 @@ export const getSchema = async (config) => {
       WHERE tc.table_schema = 'public'
     `);
 
-    // Fetch functions (user-defined, non-trigger)
+    // Fetch functions (including trigger functions)
     const functionsRes = await client.query(`
       SELECT p.proname AS function_name,
              pg_get_function_identity_arguments(p.oid) AS arguments,
@@ -40,19 +40,22 @@ export const getSchema = async (config) => {
         AND p.prokind = 'f'
     `);
 
-    // Fetch triggers with their function body
+    // Fetch triggers and aggregate events (e.g., INSERT OR UPDATE)
     const triggersRes = await client.query(`
       SELECT t.trigger_name, t.event_object_table AS table_name,
-             t.event_manipulation, t.action_timing,
-             t.action_statement,
-             pg_get_functiondef(p.oid) AS function_definition
+             string_agg(t.event_manipulation, ' OR ') as event_manipulation,
+             MAX(t.action_timing) as action_timing,
+             MAX(t.action_statement) as action_statement,
+             MAX(t.action_condition) as action_condition,
+             MAX(t.action_orientation) as action_orientation,
+             MAX(p.proname) AS function_name
       FROM information_schema.triggers t
       JOIN pg_trigger pt ON pt.tgname = t.trigger_name
+      JOIN pg_class c ON pt.tgrelid = c.oid AND c.relname = t.event_object_table
       JOIN pg_proc p ON p.oid = pt.tgfoid
-      JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE t.trigger_schema = 'public'
-        AND n.nspname = 'public'
         AND NOT pt.tgisinternal
+      GROUP BY t.trigger_name, t.event_object_table
     `);
 
     // Fetch sequences with full config

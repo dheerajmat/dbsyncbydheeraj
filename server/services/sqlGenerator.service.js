@@ -95,15 +95,16 @@ export const generateSQL = (diff, schemaA) => {
   (diff.triggerDifferences || []).forEach(t => {
     if (t.type === 'missing_in_B' || t.type === 'trigger_mismatch') {
       const d = t.detailsA;
-      const fnDef = d.function_definition?.replace(/^CREATE FUNCTION/i, 'CREATE OR REPLACE FUNCTION') || '';
+      const whenClause = d.action_condition ? `\n  WHEN (${d.action_condition})` : '';
+      const forEach = d.action_orientation === 'ROW' ? ' FOR EACH ROW' : (d.action_orientation === 'STATEMENT' ? ' FOR EACH STATEMENT' : '');
+      
       queries.push({
         type: t.type === 'missing_in_B' ? 'CREATE_TRIGGER' : 'REPLACE_TRIGGER',
         name: t.name,
         sql: [
-          fnDef ? fnDef + ';' : '',
           `DROP TRIGGER IF EXISTS ${d.trigger_name} ON ${d.table_name};`,
-          `CREATE TRIGGER ${d.trigger_name}\n  ${d.action_timing} ${d.event_manipulation} ON ${d.table_name}\n  ${d.action_statement};`
-        ].filter(Boolean).join('\n')
+          `CREATE TRIGGER ${d.trigger_name}\n  ${d.action_timing} ${d.event_manipulation} ON ${d.table_name}${forEach}${whenClause}\n  ${d.action_statement};`
+        ].join('\n')
       });
     }
     if (t.type === 'missing_in_A') {

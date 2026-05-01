@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Database, RefreshCw, CheckCircle2, AlertCircle, Code, Play,
@@ -107,8 +107,19 @@ const DiffRow = ({ table, column, badge, issues }) => (
 );
 
 function App() {
-  const [dbA, setDbA] = useState({ host: 'localhost', port: 5432, database: '', user: 'postgres', password: '' });
-  const [dbB, setDbB] = useState({ host: 'localhost', port: 5432, database: '', user: 'postgres', password: '' });
+  const getInitialDb = (key) => {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return { host: 'localhost', port: 5432, database: '', user: 'postgres', password: '' };
+  };
+
+  const [dbA, setDbA] = useState(() => getInitialDb('dbsync_dbA'));
+  const [dbB, setDbB] = useState(() => getInitialDb('dbsync_dbB'));
+
+  useEffect(() => { localStorage.setItem('dbsync_dbA', JSON.stringify(dbA)); }, [dbA]);
+  useEffect(() => { localStorage.setItem('dbsync_dbB', JSON.stringify(dbB)); }, [dbB]);
   const [loading, setLoading] = useState(false);
   const [diffResult, setDiffResult] = useState(null);
   const [sqlCommands, setSqlCommands] = useState([]);
